@@ -1,6 +1,6 @@
 import { roomStore } from "../lib/cacheStore.js"
 import { getRemainingTTL } from "../utils/roomUtils.js";
-
+import {io} from '../lib/socket.js'
 export const getAllRooms = (req,res)=>{
     try {
         const keys = roomStore.keys();
@@ -30,12 +30,12 @@ export const createRoom = (req,res)=>{
             name:name,
             createdAt:Date.now(),
             users:[],
-            messages:[],
             ttl:ttl,
             expiresAt:Date.now()+(ttl*1000),
         };
-        roomStore.set(roomId,room,ttl);
 
+        roomStore.set(roomId,room,ttl);
+        io.emit('room-created',room);
         res.status(201).json(room);
     } catch (error) {
         console.log("Error in createRoom",error.message);
