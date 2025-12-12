@@ -46,7 +46,7 @@ const ChatPage = () => {
         
       </main>
 
-      <footer className="p-4 pb-4 px-6 bg-white border-1 border-slate-200 ">
+      <footer className="p-4 pb-4 px-6 bg-white border border-slate-200 ">
         <div className="flex items-center gap-2 bg-slate-100 ">
           <Input className="py-5 md:py-6 md:text-xl flex-1" />
           <Button className="py-5.5 md:py-6.5 md:text-lg md:[&_svg:not([class*='size-'])]:size-5 md:has-[>svg]:px-4 ">
