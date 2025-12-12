@@ -19,7 +19,7 @@ const JoinRoomModal = ({ open, onOpenChange }) => {
 
     //TODO Join room
 
-    setRoomCode("")
+    setRoomCode("");
     setUserName("");
     onOpenChange(false);
   };

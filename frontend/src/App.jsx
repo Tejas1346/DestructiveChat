@@ -1,12 +1,18 @@
 import React from "react";
 import { Button } from "./components/ui/button";
 import HomePage from "./pages/HomePage";
+import ChatPage from "./pages/ChatPage";
+
+import { BrowserRouter, Route, Router, Routes } from "react-router-dom";
 
 const App = () => {
   return (
-    <div className="bg-[#fdfaff] min-h-screen flex items-center justify-center min-w-xs  overflow-auto">
-      <HomePage></HomePage>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/chat/:roomId" element={<ChatPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 };
 
