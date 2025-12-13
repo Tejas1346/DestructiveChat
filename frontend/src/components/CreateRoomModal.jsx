@@ -10,6 +10,10 @@ import React from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { useState } from "react";
+import { createRoom } from "@/api/theApi";
+import { io } from "socket.io-client";
+import { useNavigate } from "react-router-dom";
+import { socket } from "@/lib/socket";
 
 const CreateRoomModal = ({ open, onOpenChange }) => {
   const durations = [
@@ -22,11 +26,22 @@ const CreateRoomModal = ({ open, onOpenChange }) => {
   ];
   const [roomName, setRoomName] = useState("");
   const [selDuration, setSelDuration] = useState("30");
-  const handleSubmit = () => {
-    if (roomName.trim() === "") return;
+  const [userName, setUserName] = useState("");
+  const navigate = useNavigate();
+  const handleSubmit = async () => {
+    if (!roomName.trim() || !userName.trim() || !selDuration.trim()) return;
 
     //Create Room
+    const room = await createRoom({ name: roomName, ttl: selDuration * 60 });
+    console.log("userName",userName,"room",room);
+    
+    
+    sessionStorage.setItem('userName',userName);
+    navigate(`/chat/${room.roomCode}`);
+    
+    
 
+    setUserName("");
     setRoomName("");
     setSelDuration("30");
     onOpenChange(false);
@@ -49,6 +64,14 @@ const CreateRoomModal = ({ open, onOpenChange }) => {
             className="mt-1 md:py-5 md:text-lg "
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="text-slate-600 ">Your Name</label>
+          <Input
+            className="mt-1 md:py-5 md:text-lg "
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
           />
         </div>
         <div>

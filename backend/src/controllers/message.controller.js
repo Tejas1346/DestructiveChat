@@ -1,5 +1,5 @@
 import { roomStore,messageStore } from "../lib/cacheStore.js";
-import {io} from '../lib/socket.js'
+
 export const createMessage = (req,res)=>{
     try {
         const {roomId,text,senderId,senderName}=req.body;
@@ -21,7 +21,7 @@ export const createMessage = (req,res)=>{
         existing.push(message);
         messageStore.set(roomId,existing,300);
 
-        io.to(roomId).emit("send-message",message);
+        
 
         return res.status(201).json(message);
     } catch (error) {

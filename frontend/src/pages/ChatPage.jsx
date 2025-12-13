@@ -1,63 +1,180 @@
 import { Clock, LogOut, Send, Share2, Users } from "lucide-react";
-import React, { useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import MessageComponent from "@/components/MessageComponent";
+import { socket } from "@/lib/socket";
+import axiosInstance from "@/api/axiosInstance";
+import { getMessagesByRoom, getRoomByCode } from "@/api/theApi";
 const ChatPage = () => {
-  const { roomId } = useParams();
-  
-  
+  const { roomCode } = useParams();
+  const [text, setText] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [userName, setUserName] = useState("");
+  const [roomData, setRoomData] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const navigate = useNavigate();
+
+  //Send Message
+  const sendMessage = async () => {
+    const room = await getRoomByCode(roomCode);
+
+    socket.emit("send-message", {
+      roomId: room.id,
+      text: text,
+      senderId: socket.id,
+      userName: userName,
+    });
+
+    setText("");
+  };
+
+  //Leave Room
+  const leaveRoom = async () => {
+    const room = await getRoomByCode(roomCode);
+    socket.emit("leave-room", {
+      roomId: room.id,
+      userId: socket.id,
+    });
+    navigate("/");
+  };
+
+  //load the page
+  useEffect(() => {
+    const loadRoomData = async () => {
+      try {
+        const room = await getRoomByCode(roomCode);
+        setRoomData(room);
+        setTimeLeft(room.ttl);
+        const userName = sessionStorage.getItem("userName");
+
+        if (!userName) {
+          navigate("/");
+          return;
+        }
+        setUserName(userName);
+        // Fetch message history
+        const messages = await getMessagesByRoom(room.id);
+        setMessages(messages);
+        socket.emit("join-room", {
+          roomId: room.id,
+          userName: userName,
+        });
+      } catch (error) {
+        console.error("Failed to load room data:", error);
+        navigate("/");
+      }
+    };
+
+    loadRoomData();
+  }, []);
+
+  // whenever someone sends a message update the messages
+  useEffect(() => {
+    socket.on("recieve-message", (message) => {
+      setMessages((prev) => [...prev, message]);
+    });
+    return () => {
+      socket.off("recieve-message");
+    };
+  }, []);
+
+  //Countdown
+  useEffect(() => {
+    if (!roomData) return;
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const expiresAt = roomData.expiresAt; 
+      const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000)); 
+
+      setTimeLeft(remaining);
+
+      // Redirect when time expires
+      if (remaining <= 0) {
+        alert("Room has expired!");
+        socket.emit("leave-room", {
+          roomId: roomData.id,
+          userId: socket.id,
+        });
+        navigate("/");
+      }
+    };
+
+    updateTimer(); 
+    const interval = setInterval(updateTimer, 1000); 
+
+    return () => clearInterval(interval);
+  }, [roomData, navigate]);
+
+  const hours = Math.floor(timeLeft / 3600);
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+
   return (
     <div className="w-full bg-slate-200 ">
-        <div className="max-w-7xl border-2 border-slate-100 mx-auto h-screen bg-slate-100 flex flex-col">
-      {/* Header */}
-      <header className="w-full border-2 rounded-md border-slate-50 flex flex-col md:flex-row md:items-center justify-between p-3 bg-white">
-        <div className="p-3 pb-1 ">
-          <h2 className="md:text-2xl text-xl">Room Name</h2>
-          <div className="flex items-center py-3 gap-4">
-            <div className="flex items-center gap-2">
-              <Users />
-              <span className="text-sm md:text-lg">You As Username</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock />
-              <span className="text-sm md:text-lg">Expires in Time</span>
+      <div className="max-w-7xl border-2 border-slate-100 mx-auto h-screen bg-slate-100 flex flex-col">
+        {/* Header */}
+        <header className="w-full border-2 rounded-md border-slate-50 flex flex-col md:flex-row md:items-center justify-between p-3 bg-white">
+          <div className="p-3 pb-1 ">
+            <h2 className="md:text-2xl text-xl">Room Name</h2>
+            <div className="flex items-center py-3 gap-4">
+              <div className="flex items-center gap-2">
+                <Users />
+                <span className="text-sm md:text-lg">You As {userName}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock />
+                <span className="text-sm md:text-lg">
+                  Expires in {hours}:{minutes}:{seconds}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4 justify-center ">
-          <Button className="md:py-7 py-2 flex-1  md:text-xl md:[&_svg:not([class*='size-'])]:size-5.5 ">
-            <Share2 /> Share Code
-          </Button>
-          <Button
-            variant={"outline"}
-            className="md:py-7 py-2 flex-1 md:text-xl text-slate-700 md:[&_svg:not([class*='size-'])]:size-5.5"
-          >
-            <LogOut /> Leave Room
-          </Button>
-        </div>
-      </header>
+          <div className="flex items-center gap-4 justify-center ">
+            <Button className="md:py-7 py-2 flex-1  md:text-xl md:[&_svg:not([class*='size-'])]:size-5.5 ">
+              <Share2 /> Share Code
+            </Button>
+            <Button
+              onClick={leaveRoom}
+              variant={"outline"}
+              className="md:py-7 py-2 flex-1 md:text-xl text-slate-700 md:[&_svg:not([class*='size-'])]:size-5.5"
+            >
+              <LogOut /> Leave Room
+            </Button>
+          </div>
+        </header>
 
-      <main className="flex-1 overflow-y-auto p-3 ">
-        <MessageComponent/>
-        <MessageComponent isSent={true}/>
-        <MessageComponent/>
-        
-      </main>
+        <main className="flex-1 overflow-y-auto p-3 ">
+          {messages.map((msg) => (
+            <MessageComponent
+              key={msg.id}
+              message={msg}
+              isSent={msg.senderId === socket.id}
+            />
+          ))}
+        </main>
 
-      <footer className="p-4 pb-4 px-6 bg-white border border-slate-200 ">
-        <div className="flex items-center gap-2 bg-slate-100 ">
-          <Input className="py-5 md:py-6 md:text-xl flex-1" />
-          <Button className="py-5.5 md:py-6.5 md:text-lg md:[&_svg:not([class*='size-'])]:size-5 md:has-[>svg]:px-4 ">
-            <Send /> Send
-          </Button>
-        </div>
-        <p className="text-center mt-2 text-sm md:text-lg text-slate-500">
-          Messages self destruct after 5mins
-        </p>
-      </footer>
-    </div>
+        <footer className="p-4 pb-4 px-6 bg-white border border-slate-200 ">
+          <div className="flex items-center gap-2 bg-slate-100 ">
+            <Input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="py-5 md:py-6 md:text-xl flex-1"
+            />
+            <Button
+              onClick={sendMessage}
+              className="py-5.5 md:py-6.5 md:text-lg md:[&_svg:not([class*='size-'])]:size-5 md:has-[>svg]:px-4 "
+            >
+              <Send /> Send
+            </Button>
+          </div>
+          <p className="text-center mt-2 text-sm md:text-lg text-slate-500">
+            Messages self destruct after 5mins
+          </p>
+        </footer>
+      </div>
     </div>
   );
 };

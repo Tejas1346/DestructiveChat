@@ -9,15 +9,26 @@ import {
 import { Button } from "./ui/button";
 import React, { useState } from "react";
 import { Input } from "./ui/input";
-
+import { socket } from "@/lib/socket";
+import axiosInstance from "@/api/axiosInstance";
+import { useNavigate } from "react-router-dom";
+import { getRoomByCode } from "@/api/theApi";
 const JoinRoomModal = ({ open, onOpenChange }) => {
   const [roomCode, setRoomCode] = useState("");
   const [userName, setUserName] = useState("");
-
-  const handleSubmit = () => {
+  const navigate = useNavigate();
+  const handleSubmit = async () => {
     if (!roomCode.trim() || !userName.trim()) return;
 
     //TODO Join room
+    
+    console.log(roomCode); 
+    sessionStorage.setItem('userName',userName); 
+    
+    navigate(`/chat/${roomCode}`);
+    
+
+    
 
     setRoomCode("");
     setUserName("");
@@ -35,7 +46,7 @@ const JoinRoomModal = ({ open, onOpenChange }) => {
           <Input
             value={roomCode}
             onChange={(e) => setRoomCode(e.target.value)}
-            className="md:text-2xl py-6 mt-2 text-center text-bold uppercase"
+            className="md:text-2xl py-6 mt-2 text-center text-bold"
           />
         </div>
         <div>
@@ -48,7 +59,7 @@ const JoinRoomModal = ({ open, onOpenChange }) => {
         </div>
         <div className="border-solid border-2 rounded-md p-4 bg-blue-50 border-blue-200">
           <p className="text-blue-800 text-lg">
-            Ask the room creator to share their Room ID with you.
+            Ask the room creator to share their Room Code with you.
           </p>
         </div>
 
