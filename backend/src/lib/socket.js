@@ -17,6 +17,8 @@ io.on("connection", (socket) => {
   //When someone joins a room
   socket.on("join-room", ({ roomId, userName }) => {
     try {
+      socket.roomId=roomId;
+      socket.userName=userName;
       console.log("Join Room By", userName, "roomId", roomId);
 
       const room = roomStore.get(roomId);
@@ -61,6 +63,7 @@ io.on("connection", (socket) => {
     });
   });
 
+  // Create the message and broadcast it to all the members in the room
   socket.on("send-message", async ({ roomId, text, senderId,userName }) => {
     try {
       if (!text || !roomId || !senderId) {
@@ -89,6 +92,24 @@ io.on("connection", (socket) => {
       socket.emit("message-error",{message:"Internal Server Error"})
     }
   });
+
+  //When a user disconnects, leave the room if they are in it
+  socket.on("disconnect",()=>{
+    if(!socket.roomId) return;
+    const roomId = socket.roomId;
+    const room = roomStore.get(roomId);
+    if (!room) return;
+    socket.leave(roomId);
+    const users = room.users.filter((u) => u.id !== socket.id);
+    const updatedRoom = { ...room, users };
+    roomStore.set(roomId, updatedRoom, room.ttl);
+    io.to(roomId).emit("room-left", {
+      roomId:roomId,
+      users: updatedRoom.users,
+      userId: socket.id,
+    });
+    
+  })
 });
 
 export default app;

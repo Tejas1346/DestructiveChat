@@ -14,11 +14,12 @@ const ChatPage = () => {
   const [userName, setUserName] = useState("");
   const [roomData, setRoomData] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const roomDataRef = useRef(null);
   const navigate = useNavigate();
 
   //Send Message
   const sendMessage = async () => {
-    const room = await getRoomByCode(roomCode);
+    const room = roomData;
 
     socket.emit("send-message", {
       roomId: room.id,
@@ -32,7 +33,7 @@ const ChatPage = () => {
 
   //Leave Room
   const leaveRoom = async () => {
-    const room = await getRoomByCode(roomCode);
+    const room = roomData;
     socket.emit("leave-room", {
       roomId: room.id,
       userId: socket.id,
@@ -45,10 +46,16 @@ const ChatPage = () => {
     const loadRoomData = async () => {
       try {
         const room = await getRoomByCode(roomCode);
+        //Throw an error if no room
+        if (!room) {
+          throw new Error("Room Not Found");
+        }
         setRoomData(room);
+        roomDataRef.current = room;
         setTimeLeft(room.ttl);
         const userName = sessionStorage.getItem("userName");
 
+        //accessing the link directly
         if (!userName) {
           navigate("/");
           return;
@@ -62,32 +69,47 @@ const ChatPage = () => {
           userName: userName,
         });
       } catch (error) {
-        console.error("Failed to load room data:", error);
+        console.error("Error in loading room:", error.message);
         navigate("/");
       }
     };
 
     loadRoomData();
+    // Leaves the room when component is dismounted
+    return () => {
+      const room = roomDataRef.current;
+      // No room bug
+      // Check if the room exists as the user may go to a invalid room and it needs room
+      if (room) {
+        socket.emit("leave-room", {
+          roomId: room.id,
+          userId: socket.id,
+        });
+      }
+    };
   }, []);
 
   // whenever someone sends a message update the messages
   useEffect(() => {
+    //add listener when component mounts
     socket.on("recieve-message", (message) => {
       setMessages((prev) => [...prev, message]);
     });
+
+    //removes the listener
     return () => {
       socket.off("recieve-message");
     };
   }, []);
 
-  //Countdown
+  //roomData in dependency array to make sure roomData is set
   useEffect(() => {
     if (!roomData) return;
 
     const updateTimer = () => {
       const now = Date.now();
-      const expiresAt = roomData.expiresAt; 
-      const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000)); 
+      const expiresAt = roomData.expiresAt;
+      const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
 
       setTimeLeft(remaining);
 
@@ -102,12 +124,14 @@ const ChatPage = () => {
       }
     };
 
-    updateTimer(); 
-    const interval = setInterval(updateTimer, 1000); 
+    // Reset the timer every second
+    // updateTimer();
+    const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [roomData, navigate]);
+  }, [roomData]);
 
+  //Format the time
   const hours = Math.floor(timeLeft / 3600);
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
