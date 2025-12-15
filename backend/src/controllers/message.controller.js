@@ -19,7 +19,7 @@ export const createMessage = (req,res)=>{
         } 
         const existing = messageStore.get(roomId)||[];
         existing.push(message);
-        messageStore.set(roomId,existing,300);
+        messageStore.set(roomId,existing,room.ttl);
 
         
 
@@ -36,6 +36,7 @@ export const getMessagesByRoom = (req,res)=>{
         const room = roomStore.get(roomId);
         if(!room) return res.status(404).json({message:"Room Not found"});
         const messages = messageStore.get(roomId);
+        if(!messages) res.status(200).json([]);
         res.status(200).json(messages);
     } catch (error) {
         console.log("Error in getMessagesByRoom",error.message)

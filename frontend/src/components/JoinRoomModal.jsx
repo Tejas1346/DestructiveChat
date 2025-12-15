@@ -22,6 +22,8 @@ const JoinRoomModal = ({ open, onOpenChange }) => {
 
     //TODO Join room
     
+    const room = await getRoomByCode(roomCode);
+    if(!room) return
     console.log(roomCode); 
     sessionStorage.setItem('userName',userName); 
     

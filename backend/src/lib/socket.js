@@ -82,9 +82,9 @@ io.on("connection", (socket) => {
         createdAt:Date.now(),
         userName:userName
       }
-      const existingMessages = messageStore.get(roomId);
+      const existingMessages = messageStore.get(roomId)||[];
       existingMessages.push(message);
-      messageStore.set(roomId,existingMessages,300);
+      messageStore.set(roomId,existingMessages,room.ttl);
 
       io.to(roomId).emit("recieve-message",message);
     } catch (error) {

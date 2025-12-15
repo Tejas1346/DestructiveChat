@@ -7,6 +7,7 @@ import MessageComponent from "@/components/MessageComponent";
 import { socket } from "@/lib/socket";
 import axiosInstance from "@/api/axiosInstance";
 import { getMessagesByRoom, getRoomByCode } from "@/api/theApi";
+import ShareCodeModal from "@/components/ShareCodeModal";
 const ChatPage = () => {
   const { roomCode } = useParams();
   const [text, setText] = useState("");
@@ -15,6 +16,7 @@ const ChatPage = () => {
   const [roomData, setRoomData] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const roomDataRef = useRef(null);
+  const [isShareCodeOpen,setIsShareCodeOpen]=useState(false);
   const navigate = useNavigate();
 
   //Send Message
@@ -142,7 +144,7 @@ const ChatPage = () => {
         {/* Header */}
         <header className="w-full border-2 rounded-md border-slate-50 flex flex-col md:flex-row md:items-center justify-between p-3 bg-white">
           <div className="p-3 pb-1 ">
-            <h2 className="md:text-2xl text-xl">Room Name</h2>
+            <h2 className="md:text-2xl text-indigo-700 text-xl">{roomDataRef.current?roomDataRef.current.name:"Room"}</h2>
             <div className="flex items-center py-3 gap-4">
               <div className="flex items-center gap-2">
                 <Users />
@@ -157,7 +159,7 @@ const ChatPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-4 justify-center ">
-            <Button className="md:py-7 py-2 flex-1  md:text-xl md:[&_svg:not([class*='size-'])]:size-5.5 ">
+            <Button onClick={()=>setIsShareCodeOpen(true)} className="md:py-7 py-2 flex-1  md:text-xl md:[&_svg:not([class*='size-'])]:size-5.5 ">
               <Share2 /> Share Code
             </Button>
             <Button
@@ -195,10 +197,11 @@ const ChatPage = () => {
             </Button>
           </div>
           <p className="text-center mt-2 text-sm md:text-lg text-slate-500">
-            Messages self destruct after 5mins
+            Messages self destruct along with the room
           </p>
         </footer>
       </div>
+      <ShareCodeModal open={isShareCodeOpen} onOpenChange={setIsShareCodeOpen}/>
     </div>
   );
 };
