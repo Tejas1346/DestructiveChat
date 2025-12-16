@@ -15,7 +15,7 @@ const ShareCodeModal = ({ open, onOpenChange }) => {
           <DialogTitle className="text-xl">Share Room Code</DialogTitle>
         </DialogHeader>
         <div className="flex items-center gap-2">
-          <div className="flex-1 text-center md:text-2xl text-lg bg-blue-100 py-3 border-2 border-blue-500 rounded-lg md:py-5">
+          <div className="flex-1 text-center md:text-2xl text-lg bg-blue-100 py-3 border-2 border-blue-500 rounded-lg md:py-4`">
             {roomCode}
           </div>
           <Button

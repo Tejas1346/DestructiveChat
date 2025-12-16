@@ -8,13 +8,16 @@ import { socket } from "@/lib/socket";
 import axiosInstance from "@/api/axiosInstance";
 import { getMessagesByRoom, getRoomByCode } from "@/api/theApi";
 import ShareCodeModal from "@/components/ShareCodeModal";
+import toast, { Toaster } from "react-hot-toast";
 const ChatPage = () => {
   const { roomCode } = useParams();
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
   const [userName, setUserName] = useState("");
+  const [userId,setUserId]=useState(null);
   const [roomData, setRoomData] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const userIdRef = useRef(null);
   const roomDataRef = useRef(null);
   const [isShareCodeOpen,setIsShareCodeOpen]=useState(false);
   const navigate = useNavigate();
@@ -26,10 +29,10 @@ const ChatPage = () => {
     socket.emit("send-message", {
       roomId: room.id,
       text: text,
-      senderId: socket.id,
+      senderId: userId,
       userName: userName,
     });
-
+    console.log(userId);
     setText("");
   };
 
@@ -38,8 +41,9 @@ const ChatPage = () => {
     const room = roomData;
     socket.emit("leave-room", {
       roomId: room.id,
-      userId: socket.id,
+      userId: userId,
     });
+    
     navigate("/");
   };
 
@@ -66,10 +70,24 @@ const ChatPage = () => {
         // Fetch message history
         const messages = await getMessagesByRoom(room.id);
         setMessages(messages);
+        const existingUserId=sessionStorage.getItem('userId')||"";
+
+        socket.once("user-joined", ({ userId }) => {
+         
+          setUserId(userId); 
+          userIdRef.current = userId; 
+          sessionStorage.setItem("userId", userId); 
+        });
+
+
         socket.emit("join-room", {
           roomId: room.id,
           userName: userName,
+          existingUserId:existingUserId
         });
+        
+        
+        // if(!existingUserId) sessionStorage.setItem('userId',userId); 
       } catch (error) {
         console.error("Error in loading room:", error.message);
         navigate("/");
@@ -83,10 +101,12 @@ const ChatPage = () => {
       // No room bug
       // Check if the room exists as the user may go to a invalid room and it needs room
       if (room) {
+        
         socket.emit("leave-room", {
           roomId: room.id,
-          userId: socket.id,
+          userId: userId,
         });
+        
       }
     };
   }, []);
@@ -98,9 +118,28 @@ const ChatPage = () => {
       setMessages((prev) => [...prev, message]);
     });
 
+    socket.on("room-joined",({user})=>{
+      console.log(user);
+      toast(`${user.name} joined`,{
+        style:{
+          color:'#28a745'
+        }
+      })
+    })
+
+
+    socket.on("room-left",({user})=>{
+      toast(`${user.name} left`,{
+        style:{
+          color:"#991b1b"
+        }
+      })
+    })
     //removes the listener
     return () => {
       socket.off("recieve-message");
+      socket.off("room-joined");
+      socket.off("room-left");
     };
   }, []);
 
@@ -120,7 +159,7 @@ const ChatPage = () => {
         alert("Room has expired!");
         socket.emit("leave-room", {
           roomId: roomData.id,
-          userId: socket.id,
+          userId: userId,
         });
         navigate("/");
       }
@@ -173,15 +212,16 @@ const ChatPage = () => {
         </header>
 
         <main className="flex-1 overflow-y-auto p-3 ">
+          <Toaster />
           {messages.map((msg) => (
             <MessageComponent
               key={msg.id}
               message={msg}
-              isSent={msg.senderId === socket.id}
+              isSent={msg.senderId === userId}
             />
           ))}
         </main>
-
+          
         <footer className="p-4 pb-4 px-6 bg-white border border-slate-200 ">
           <div className="flex items-center gap-2 bg-slate-100 ">
             <Input

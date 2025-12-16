@@ -5,23 +5,26 @@ import ChatPage from "./pages/ChatPage";
 
 import { BrowserRouter, Route, Router, Routes } from "react-router-dom";
 import { socket } from "./lib/socket";
+import { Toaster } from "react-hot-toast";
 
 const App = () => {
-  useEffect(()=>{
-    if(!socket.connected){
+  useEffect(() => {
+    if (!socket.connected) {
       socket.connect();
     }
-    return ()=>{
+    return () => {
       socket.disconnect();
-    }
-  },[])
+    };
+  }, []);
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/chat/:roomCode" element={<ChatPage />} />
-      </Routes>
-    </BrowserRouter>
+    
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/chat/:roomCode" element={<ChatPage />} />
+        </Routes>
+      </BrowserRouter>
+    
   );
 };
 

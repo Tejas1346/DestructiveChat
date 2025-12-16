@@ -13,6 +13,7 @@ import { socket } from "@/lib/socket";
 import axiosInstance from "@/api/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import { getRoomByCode } from "@/api/theApi";
+import toast, { Toaster } from "react-hot-toast";
 const JoinRoomModal = ({ open, onOpenChange }) => {
   const [roomCode, setRoomCode] = useState("");
   const [userName, setUserName] = useState("");
@@ -21,16 +22,18 @@ const JoinRoomModal = ({ open, onOpenChange }) => {
     if (!roomCode.trim() || !userName.trim()) return;
 
     //TODO Join room
-    
-    const room = await getRoomByCode(roomCode);
-    if(!room) return
-    console.log(roomCode); 
-    sessionStorage.setItem('userName',userName); 
-    
-    navigate(`/chat/${roomCode}`);
-    
 
-    
+    const room = await getRoomByCode(roomCode);
+    if (!room) {
+      toast.error("No room found", {
+        duration: 2000,
+      });
+      return;
+    }
+    console.log(roomCode);
+    sessionStorage.setItem("userName", userName);
+
+    navigate(`/chat/${roomCode}`);
 
     setRoomCode("");
     setUserName("");
@@ -38,6 +41,7 @@ const JoinRoomModal = ({ open, onOpenChange }) => {
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <Toaster />
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="text-xl">Join Room</DialogTitle>
